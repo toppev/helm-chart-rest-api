@@ -21,7 +21,7 @@ func main() {
 	log.Println("Starting server...")
 	err := godotenv.Load()
 	if err != nil {
-		log.Fatal("Error loading .env file", err)
+		log.Fatalf("Error loading .env file: %+v", err)
 	}
 	chartPath = os.Getenv("CHART_PATH")
 	namespace = os.Getenv("KUBE_NAMESPACE")
@@ -60,10 +60,9 @@ func startChart(w http.ResponseWriter, r *http.Request) {
 
 // Some help here https://stackoverflow.com/questions/45692719/samples-on-kubernetes-helm-golang-client
 func upgradeOrInstallChart(releaseName string, values map[string]interface{}) {
-	// Load the chart
 	chart, err := loader.Load(chartPath)
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 	actionConf := new(action.Configuration)
 	clientGetter := cli.New().RESTClientGetter()
@@ -77,7 +76,7 @@ func upgradeOrInstallChart(releaseName string, values map[string]interface{}) {
 
 	rel, err := client.Run(releaseName, chart, values)
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 	log.Printf("Installed/Upgraded Chart '%s' from path: '%s' in namespace: '%s'\n", releaseName, rel.Name, rel.Namespace)
 }
