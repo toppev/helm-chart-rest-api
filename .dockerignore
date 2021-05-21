@@ -1,0 +1,9 @@
+.git/
+.gitignore
+*.md
+.idea/
+*.iml
+example.env
+
+# if built manually (the binary)
+helm-chart-rest-api
