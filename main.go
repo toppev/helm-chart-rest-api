@@ -28,10 +28,11 @@ func main() {
 	log.Printf("chartPath: %s", chartPath)
 	log.Printf("namespace: %s", namespace)
 	http.HandleFunc("/start-chart", startChart)
+	http.HandleFunc("/uninstall-chart", stopChart)
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
 
-type RequestBody struct {
+type StartChartRequest struct {
 	releaseName string
 	values      map[string]interface{}
 }
@@ -43,8 +44,8 @@ func startChart(w http.ResponseWriter, r *http.Request) {
 	} else {
 		r.Body = http.MaxBytesReader(w, r.Body, 1024*1024) // max 2 MB
 		dec := json.NewDecoder(r.Body)
-		dec.DisallowUnknownFields()
-		var body RequestBody
+		// dec.DisallowUnknownFields()
+		var body StartChartRequest
 		err := dec.Decode(&body)
 		if err != nil {
 			msg := "Failed to parse request body"
@@ -79,4 +80,30 @@ func upgradeOrInstallChart(releaseName string, values map[string]interface{}) {
 		log.Fatal(err)
 	}
 	log.Printf("Installed/Upgraded Chart '%s' from path: '%s' in namespace: '%s'\n", releaseName, rel.Name, rel.Namespace)
+}
+
+func stopChart(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	if r.Method != http.MethodDelete {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+	} else {
+		releaseName := r.URL.Query().Get("release")
+		uninstallChart(releaseName)
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`{"message": "success"}`))
+	}
+}
+
+func uninstallChart(releaseName string) {
+	actionConf := new(action.Configuration)
+	clientGetter := cli.New().RESTClientGetter()
+	if err := actionConf.Init(clientGetter, namespace, os.Getenv("HELM_DRIVER"), log.Printf); err != nil {
+		log.Printf("%+v", err)
+	}
+	client := action.NewUninstall(actionConf)
+	rel, err := client.Run(releaseName)
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.Printf("Uninstalled Chart '%s' from path: '%s' in namespace: '%s'\n", releaseName, rel.Release.Name, rel.Release.Namespace)
 }
