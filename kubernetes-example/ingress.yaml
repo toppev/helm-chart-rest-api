@@ -1,0 +1,24 @@
+# Optional; only if exposing the API
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    kubernetes.io/ingress.class: nginx
+  name: ingress-helm-api
+  namespace: kube-system
+spec:
+  rules:
+    - host: <<domain>>
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: helm-api
+                port:
+                  number: 80
+  tls:
+    - hosts:
+        - <<domain>>
+      secretName: tls-helm-api

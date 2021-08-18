@@ -1,0 +1,50 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: helm-api
+  name: helm-api
+  namespace: kube-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: helm-api
+  template:
+    metadata:
+      labels:
+        app: helm-api
+    spec:
+      serviceAccountName: helm-api
+      containers:
+        - image: 'helm-api' # Change this
+          imagePullPolicy: Always
+          env:
+            - name: KUBE_NAMESPACE
+              value: apps
+            - name: CHART_PATH
+              value: ./chart
+            - name: AUTH_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: helm-api-basic-auth
+                  key: username
+            - name: AUTH_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: helm-api-basic-auth
+                  key: password
+          name: helm-api
+          readinessProbe:
+            periodSeconds: 2
+            successThreshold: 1
+            tcpSocket:
+              port: 8080
+            timeoutSeconds: 1
+          ports:
+            - name: helm-api
+              containerPort: 8080
+      imagePullSecrets:
+        - name: reg-cred-secret
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
